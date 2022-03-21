@@ -22,6 +22,10 @@ class DataBase:
         "Q0",     "Q1",     "Q2",     "Q3",     "Q4",
         "Q5",     "Q6",     "Q7",     "Q8",     "Q9"  
         ]
+    
+    SIMPLE_FIELD_LIST = ["ReadOrNot",   "PublicationYear", "Publisher",  
+        "Author",   'PaperName',      "Tags",
+        ]
 
     def __init__(self):
         # 初始化函数，生成并连接数据库
@@ -128,7 +132,7 @@ class DataBase:
 
         # 依次读取待修改的属性
         if info.get("ReadOrNot"):
-            update += "ReadOrNot=" + info.get("ReadOrNot") + ","
+            update += "ReadOrNot=" + str(info.get("ReadOrNot")) + ","
         for item in modi_fields:
             if info.get(item):
                 update += item + "=\"" + info.get(item) + "\","
@@ -160,8 +164,7 @@ class DataBase:
 
 
     def show_all_paper(self):
-        # 测试用函数，返回全部内容字典
-
+        # 返回全部内容字典
         ret_list = list(self.m_con.execute('''
             select * from paperlist;
             '''))
