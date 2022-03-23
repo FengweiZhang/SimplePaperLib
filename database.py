@@ -36,10 +36,10 @@ class DataBase:
         rel_path = "database.db"
 
         # 测试用，每次删库跑路
-        try: 
-            os.remove(rel_path) 
-        except:
-            pass
+        # try: 
+        #     os.remove(rel_path) 
+        # except:
+        #     pass
 
         # 检查数据库文件父目录是否存在
         # if not os.path.isdir(rel_path):
@@ -152,6 +152,17 @@ class DataBase:
 
         return MY_SUCCESS
 
+    def del_paper(self, info:dict):
+        # 删除paper
+        no = info.get("No")
+        if not no:
+            return MY_ERROR_NO_PAPERNO
+
+        self.m_con.execute(f'''
+            DELETE FROM paperlist
+            WHERE No = {no};
+        ''')
+        self.m_con.commit()
 
 
     def find_paper(self, info:dict):
