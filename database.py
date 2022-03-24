@@ -55,7 +55,7 @@ class DataBase:
             self.m_con.execute('''create table paperlist(
                 No INTEGER PRIMARY KEY AUTOINCREMENT,
                 ReadOrNot       INT,
-                PublicationYear TEXT,
+                PublicationYear INT,
                 Publisher       TEXT,
                 Author          TEXT,
                 PaperName       TEXT,
@@ -100,10 +100,15 @@ class DataBase:
         add_fields = copy.deepcopy(DataBase.FIELD_LIST)
         add_fields.remove("No")
         add_fields.remove("ReadOrNot")
+        add_fields.remove("PublicationYear")
+
+        if info.get("PublicationYear"):
+            fields += "," + "PublicationYear"
+            values += "," + str(info.get("PublicationYear"))
         for item in add_fields:
             if info.get(item):
                 fields += "," + item
-                values += ",\"" + info.get(item) + "\""
+                values += ",\"" + str(info.get(item)) + "\""
             else:
                 fields += "," + item
                 values += ",\"\""
@@ -129,10 +134,13 @@ class DataBase:
         modi_fields = copy.deepcopy(DataBase.FIELD_LIST)
         modi_fields.remove("No")
         modi_fields.remove("ReadOrNot")
+        modi_fields.remove("PublicationYear")
 
         # 依次读取待修改的属性
         if info.get("ReadOrNot"):
             update += "ReadOrNot=" + str(info.get("ReadOrNot")) + ","
+        if info.get("PublicationYear"):
+            update += "Publication" + str(info.get("PublicationYear")) + ","
         for item in modi_fields:
             if info.get(item):
                 update += item + "=\"" + info.get(item) + "\","
@@ -165,10 +173,82 @@ class DataBase:
         self.m_con.commit()
 
 
+    def show_all_paper(self):
+        # 返回全部内容字典
+        ret_list = list(self.m_con.execute('''
+            select * from paperlist;
+            '''))
+
+        return ret_list
+
+
     def find_paper(self, info:dict):
         # 查找函数，按字典info信息查找特定的paper
-
+        # pubyear_begin pubyear_end puber_list tag_list keyword
+        # papername_flag notes_flag
         ret_list = []
+        search_condition = ""
+
+        if info.get("pubyear_begin"):
+            if search_condition == "":
+                search_condition += "PublicationYear >= "+str(info.get("pubyear_begin"))
+            else:
+                search_condition += " AND "+"PublicationYear >= "+str(info.get("pubyear_begin"))
+        if info.get("pubyear_end"):
+            if search_condition == "":
+                search_condition += "PublicationYear <= "+str(info.get("pubyear_end"))
+            else:
+                search_condition += " AND " + "PublicationYear <= "+str(info.get("pubyear_end"))
+        if info.get("puber_list"):
+            if len(info.get("puber_list")) != 0:
+                if search_condition != "":
+                    search_condition += " AND "
+                search_condition += "("
+                i = 0
+                for item in info.get("puber_list"):
+                    if(i != 0):
+                        search_condition += " OR "
+                    search_condition += "Publisher LIKE "+'\''+str(item)+'\''
+                    i += 1
+                search_condition += ")"
+        
+        if info.get("tag_list"):
+            if len(info.get("tag_list")) != 0:
+                if search_condition != "":
+                    search_condition += " AND "
+                search_condition += "("
+                i = 0
+                for item in info.get("tag_list"):
+                    if(i != 0):
+                        search_condition += " OR "
+                    search_condition += "Tags LIKE \'%"+str(item)+"%\'"
+                    i += 1
+                search_condition += ")"
+        if info.get("keyword"):
+            sear_key = info.get("keyword")
+            if (info.get("papername_flag")==1 and info.get("notes_flag") == 1):
+                if search_condition != "":
+                    search_condition += " AND "
+                search_condition += f"(PaperName LIKE \'%{sear_key}%\' OR Notes LIKE \'%{sear_key}%\')"
+            elif (info.get("papername_flag")==1):
+                if search_condition != "":
+                    search_condition += " AND "
+                search_condition += f"PaperName LIKE \'%{sear_key}%\'"
+            elif (info.get("notes_flag") == 1):
+                if search_condition != "":
+                    search_condition += " AND "
+                search_condition += f"Notes LIKE \'%{sear_key}%\'"
+
+        print(search_condition)
+
+        if search_condition == "":
+            return self.show_all_paper()
+        
+        ret_list = list(self.m_con.execute(f'''
+            select * from paperlist
+            WHERE {search_condition};
+            '''))
+        print(ret_list)
 
         return ret_list
 
@@ -209,12 +289,5 @@ class DataBase:
     
 
 
-    def show_all_paper(self):
-        # 返回全部内容字典
-        ret_list = list(self.m_con.execute('''
-            select * from paperlist;
-            '''))
-
-        return ret_list
 
 

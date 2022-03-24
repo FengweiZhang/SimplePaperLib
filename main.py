@@ -20,9 +20,9 @@ else:
 
 
 a = DataBase()
-print(a.show_all_paper())
-TkUI(a, conf)
-
+# print(a.show_all_paper())
+TkUI(a)
+# print (a.find_paper({"tag_list":["123", "456"], "keyword":"456", "papername_flag":1}))
 
 
 # a.add_paper({"PaperName":"howtomouyu","Publisher":"myself"})

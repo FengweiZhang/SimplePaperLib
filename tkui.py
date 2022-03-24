@@ -9,23 +9,21 @@ import configparser, os, subprocess
 from database import DataBase
 from globalvar import *
 
+SETTING_PATH = ".\\setting.conf"
 
 class TkUI:
 
     def __init__(self, 
         db:DataBase=None, 
-        conf:configparser.ConfigParser=None
         ):
         #  内部变量赋值
         self.m_db = db      # 数据库
-        self.m_conf = conf  # 配置文件
+        self.m_conf = self.get_setting()  # 配置文件
 
-        self.all_tag_list = self.m_db.get_all_tags()
-        self.all_puber_list = self.m_db.get_all_pub()
-        self.paper_list = []
-        self.filter = {}
-
-        self.setting_dict = self.get_setting()
+        self.all_tag_list = self.m_db.get_all_tags() # 标签列表
+        self.all_puber_list = self.m_db.get_all_pub() # 会议列表
+        self.paper_list = []    # 当前展示的paper
+        self.filter = {}    # 当前的筛选条件
 
         self.root = tk.Tk()     # 主窗口
         self.menu = tk.Menu(self.root)  # 菜单栏
@@ -117,7 +115,7 @@ class TkUI:
         self.search_keyword_input_entry.grid(row=0, column=1)
 
         # 搜索按钮
-        tk.Button(self.search_frame, text="筛选", width=20, height=4, command=DISABLED).grid(row=5, column=0, sticky='we')
+        tk.Button(self.search_frame, text="筛选", width=20, height=4, command=self.search_paper).grid(row=5, column=0, sticky='we')
 
 
         # 显示主体
@@ -212,14 +210,74 @@ class TkUI:
         for item in self.search_puber_input_list:
             item.configure(values = self.all_puber_list)
         pass
-    
 
+    def search_paper(self):
+        # 更新筛选器
+        # pubyear_begin pubyear_end puber_list tag_list keyword
+        # papername_flag notes_flag
+
+        # self.paper_list = []    # 当前展示的paper
+        # self.filter # 筛选条件
+        loc_filter = {}
+
+        if self.pubyear_begin_entry.get() != "":
+            try:
+                pubyear_begin = int(self.pubyear_begin_entry.get())
+                print(self.pubyear_begin_entry.get())
+                loc_filter["pubyear_begin"] = pubyear_begin
+            except:
+                showerror("Failed", "发表起始年份错误：请输入自然数")
+                return
+            
+        if self.pubyear_end_entry.get() != "":
+            try:
+                pubyear_end = int(self.pubyear_end_entry.get())
+                loc_filter["pubyear_end"] = pubyear_end
+            except:
+                showerror("Failed", "发表结束年份错误：请输入自然数")
+                return
+
+
+        loc_tag_list = []
+        for item in self.search_tag_input_list:
+            if item.get() != "":
+                loc_tag_list.append(item.get())
+        if loc_tag_list != []:
+            loc_filter['tag_list'] = loc_tag_list
+        
+        loc_puber_list = []
+        for item in self.search_puber_input_list:
+            if item.get() != "":
+                loc_puber_list.append(item.get())
+        if loc_puber_list != "":
+            loc_filter['puber_list'] = loc_puber_list
+
+        if self.search_keyword_input_entry.get() != "":
+            loc_filter["keyword"] = self.search_keyword_input_entry.get()
+        
+        if self.search_papername_flag.get() == 1:
+            loc_filter["papername_flag"] = 1
+
+        if self.search_notes_flag.get() == 1:
+            loc_filter["notes_flag"] = 1
+
+
+        if loc_filter!={}:
+            self.filter = copy.deepcopy(loc_filter)
+            self.table_renewer()
+
+            
     def get_setting(self):
         # 获取设置文件
         # 返回字典
-        ret = {}
-
-        return ret
+        conf = configparser.ConfigParser()
+        if not os.path.isfile(SETTING_PATH):
+            conf.add_section("default")
+            conf.set("default","pdf_reader", "D:\\tools\\Foxit\\FoxitPhantomPDF.exe")
+            conf.write(open(SETTING_PATH, "w"))
+        else:
+            conf.read(SETTING_PATH, encoding="utf-8")
+        return conf
 
 
 
@@ -229,14 +287,15 @@ def search(ui:TkUI, info:dict={}):
     if (info == {}):
         # 返回全部paper
         return ui.m_db.show_all_paper()
-
-    return None
+    else:
+        return ui.m_db.find_paper(ui.filter)
+    pass
     
 def open_add_ui(ui:TkUI):
 
     def add_paper():
         paper_dict = {}
-        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end').rstrip()
+        paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
         paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
         paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
@@ -358,8 +417,8 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         for i in range(10):
             q_text_list[i].config(state='disable', bg='#ffffff')
 
-        paper_dict['ReadOrNot'] = int(read_or_not_text.get(1.0,'end'))
-        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end').rstrip()
+        paper_dict['ReadOrNot'] = int(read_or_not_text.get(1.0,'end').rstrip())
+        paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
         paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
         paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
