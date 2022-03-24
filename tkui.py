@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import DISABLED, HORIZONTAL, VERTICAL, ttk
+from tkinter import DISABLED, HORIZONTAL, VERTICAL, ttk, filedialog
 import copy
 from tkinter.messagebox import showerror
 from tkinter.scrolledtext import ScrolledText
@@ -373,8 +373,20 @@ def open_add_ui(ui:TkUI):
     url_text.config(state='normal', bg='#ffffff')
     url_text.grid(row=16,column=0)
     # Path
-    path_label = tk.Label(add_frame, text="本地目录：")
-    path_label.grid(row=17,column=0)
+    def path_button_func():
+        path_info = filedialog.askopenfilename(
+            title = "选择本地pdf文件",
+            initialdir='.',
+            filetypes = [('PDF','*.pdf')]
+        )
+        path_text.delete(1.0,tk.END)
+        path_text.insert('end', str(path_info))
+    path_frame = tk.Frame(add_frame)
+    path_frame.grid(row=17, column=0)
+    path_label = tk.Label(path_frame, text="本地目录：",height=2)
+    path_label.grid(row=0,column=0, sticky="we")
+    path_button = tk.Button(path_frame, text="Select", command=path_button_func)
+    path_button.grid(row=0, column=1)
     path_text = tk.Text(add_frame, height=1)
     path_text.config(state='normal', bg='#ffffff')
     path_text.grid(row=18,column=0)
@@ -399,6 +411,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         tags_text.config(state='normal', bg='#e8f0fe')
         notes_text.config(state='normal', bg='#e8f0fe')
         url_text.config(state='normal', bg='#e8f0fe')
+        path_button.config(state='normal')
         path_text.config(state='normal', bg='#e8f0fe')
         last_read_date_text.config(state='normal', bg='#e8f0fe')
         for i in range(10):
@@ -417,6 +430,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         tags_text.config(state='disable', bg='#ffffff')
         notes_text.config(state='disable', bg='#ffffff')
         url_text.config(state='disable', bg='#ffffff')
+        path_button.config(state='disable')
         path_text.config(state='disable', bg='#ffffff')
         last_read_date_text.config(state='disable', bg='#ffffff')
         for i in range(10):
@@ -580,8 +594,20 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     url_text.config(state='disable', bg='#ffffff')
     url_text.grid(row=16,column=0)
     # Path
-    path_label = tk.Label(edit_frame, text="本地目录：")
-    path_label.grid(row=17,column=0)
+    def path_button_func():
+        path_info = filedialog.askopenfilename(
+            title = "选择本地pdf文件",
+            initialdir='.',
+            filetypes = [('PDF','*.pdf')]
+        )
+        path_text.delete(1.0,tk.END)
+        path_text.insert('end', str(path_info))
+    path_frame = tk.Frame(edit_frame)
+    path_frame.grid(row=17, column=0)
+    path_label = tk.Label(path_frame, text="本地目录：",height=2)
+    path_label.grid(row=0,column=0, sticky="we")
+    path_button = tk.Button(path_frame, text="Select", command=path_button_func, state='disable')
+    path_button.grid(row=0, column=1)
     path_text = tk.Text(edit_frame, height=1)
     path_text.insert('end',str(paper_dict.get("Path")))
     path_text.config(state='disable', bg='#ffffff')
@@ -617,17 +643,20 @@ def open_setting_ui(ui:TkUI):
         edit_button.configure(state='disable')
         save_button.configure(state='normal')
         resume_button.configure(state='normal')
+        pdf_path_button.configure(state='normal')
         pass
 
     def edit_setting():
         pdf_path = pdf_path_entry.get()
+        print(pdf_path)
         ui.m_conf.set("default", "pdf_reader", pdf_path)
-        ui.m_conf.write(open(SETTING_PATH, "w"))
+        ui.m_conf.write(open(SETTING_PATH, "w", encoding='utf-8'))
 
         pdf_path_entry.configure(state='disable', bg='#ffffff')
         edit_button.configure(state='normal')
         save_button.configure(state='disable')
         resume_button.configure(state='disable')
+        pdf_path_button.configure(state='disable')
         pass
 
     def resume_setting():
@@ -643,6 +672,7 @@ def open_setting_ui(ui:TkUI):
         edit_button.configure(state='normal')
         save_button.configure(state='disable')
         resume_button.configure(state='disable')
+        pdf_path_button.configure(state='disable')
         pass
 
 
@@ -682,7 +712,19 @@ def open_setting_ui(ui:TkUI):
     resume_button.pack(side='left')
 
     # 添加修改的设置内容
+    def pdf_path_button_func():
+        filepath = filedialog.askopenfilename(
+            title = "选择pdf阅读器",
+            initialdir='.',
+            filetypes = [('Exe','*.exe')]
+        )
+        pdf_path_entry.delete(0,"end")
+        pdf_path_entry.insert('end',filepath)
+        pass
+
     tk.Label(edit_canvas, text="pdf阅读器位置（推荐福昕pdf阅读器）：").pack()
+    pdf_path_button = tk.Button(edit_canvas, text="Select", command=pdf_path_button_func, state='disable')
+    pdf_path_button.pack(pady=0.5)
     pdf_path_entry = tk.Entry(edit_canvas, width= 80)
     pdf_path_entry.insert('end',ui.m_conf.get("default","pdf_reader"))
     pdf_path_entry.configure(state='disable')
