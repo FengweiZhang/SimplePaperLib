@@ -117,7 +117,7 @@ class TkUI:
 
         # 搜索按钮
         tk.Button(self.search_frame, text="筛选", width=20, height=4, command=self.search_paper).grid(row=5, column=0, sticky='we')
-
+        tk.Button(self.search_frame, text="重置", width=20, height=2, command=self.resume_paper).grid(row=6, column=0, sticky='we')
 
         # 显示主体
         self.show_frame.config(bd='1p')
@@ -267,6 +267,23 @@ class TkUI:
             self.filter = copy.deepcopy(loc_filter)
             self.table_renewer()
 
+    def resume_paper(self):
+        # 重置搜索结果
+        self.pubyear_begin_entry.delete(0,"end")
+        self.pubyear_end_entry.delete(0,'end')
+        while(len(self.search_tag_input_list)>0):
+            self.search_remove_tag()
+        self.search_add_tag()
+        while(len(self.search_puber_input_list)>0):
+            self.search_remove_puber()
+        self.search_add_puber()
+        self.search_papername_flag.set(0)
+        self.search_notes_flag.set(0)
+        self.search_keyword_input_entry.delete(0, "end")
+
+        self.filter = {}
+        self.table_renewer()
+        pass
             
     def get_setting(self):
         # 获取设置文件
@@ -403,7 +420,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         del_button.config(state='normal')
 
 
-        read_or_not_text.config(state='normal', bg='#e8f0fe')
+        read_or_not_button.config(state='normal', bg='#e8f0fe')
         publication_year_text.config(state='normal', bg='#e8f0fe')
         publisher_text.config(state='normal', bg='#e8f0fe')
         author_text.config(state='normal', bg='#e8f0fe')
@@ -422,7 +439,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         save_button.config(state='disable')
         del_button.config(state='disable')
 
-        read_or_not_text.config(state='disable', bg='#ffffff')
+        read_or_not_button.config(state='disable', bg='#ffffff')
         publication_year_text.config(state='disable', bg='#ffffff')
         publisher_text.config(state='disable', bg='#ffffff')
         author_text.config(state='disable', bg='#ffffff')
@@ -436,7 +453,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         for i in range(10):
             q_text_list[i].config(state='disable', bg='#ffffff')
 
-        paper_dict['ReadOrNot'] = int(read_or_not_text.get(1.0,'end').rstrip())
+        paper_dict['ReadOrNot'] = read_or_not_button_val.get()
         paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
         paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
@@ -538,12 +555,10 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     no_label = tk.Label(edit_frame, text="Paper Local No: "+paper_no)
     no_label.grid(row=0,column=0)
     # ReadOrNot 标识
-    read_or_not_label = tk.Label(edit_frame, text="阅读标记：")
-    read_or_not_label.grid(row=1,column=0)
-    read_or_not_text = tk.Text(edit_frame, height=1)
-    read_or_not_text.insert('end',str(paper_dict.get("ReadOrNot")))
-    read_or_not_text.config(state='disable', bg='#ffffff')
-    read_or_not_text.grid(row=2,column=0)
+    read_or_not_button_val = tk.IntVar()
+    read_or_not_button = tk.Checkbutton(edit_frame,variable=read_or_not_button_val, text="阅读标记：",height=1, onvalue=1, offvalue=0)
+    read_or_not_button.config(state='disable', bg='#ffffff')
+    read_or_not_button.grid(row=2,column=0)
     # PublicationYear
     publication_year_label = tk.Label(edit_frame, text="发表年份：")
     publication_year_label.grid(row=3,column=0)
