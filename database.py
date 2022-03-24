@@ -140,7 +140,7 @@ class DataBase:
         if info.get("ReadOrNot"):
             update += "ReadOrNot=" + str(info.get("ReadOrNot")) + ","
         if info.get("PublicationYear"):
-            update += "Publication" + str(info.get("PublicationYear")) + ","
+            update += "PublicationYear=" + str(info.get("PublicationYear")) + ","
         for item in modi_fields:
             if info.get(item):
                 update += item + "=\"" + info.get(item) + "\","
@@ -150,7 +150,7 @@ class DataBase:
                 update = update[:-1]
         except:
             pass
-
+        print(update,no)
         self.m_con.execute(f'''
             UPDATE paperlist
             SET {update}

@@ -18,7 +18,8 @@ class TkUI:
         ):
         #  内部变量赋值
         self.m_db = db      # 数据库
-        self.m_conf = self.get_setting()  # 配置文件
+        self.m_conf = None  # 配置文件
+        self.get_setting()  # m_conf赋值
 
         self.all_tag_list = self.m_db.get_all_tags() # 标签列表
         self.all_puber_list = self.m_db.get_all_pub() # 会议列表
@@ -277,6 +278,7 @@ class TkUI:
             conf.write(open(SETTING_PATH, "w"))
         else:
             conf.read(SETTING_PATH, encoding="utf-8")
+        self.m_conf = copy.deepcopy(conf)
         return conf
 
 
@@ -386,6 +388,8 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     def begin_edit_paper():
         edit_button.config(state='disable')
         save_button.config(state='normal')
+        del_button.config(state='normal')
+
 
         read_or_not_text.config(state='normal', bg='#e8f0fe')
         publication_year_text.config(state='normal', bg='#e8f0fe')
@@ -401,8 +405,9 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             q_text_list[i].config(state='normal', bg='#e8f0fe')
 
     def edit_paper():
-        edit_button.config(state='normal', bg='#e8f0fe')
-        save_button.config(state='disable', bg='#ffffff')
+        edit_button.config(state='normal')
+        save_button.config(state='disable')
+        del_button.config(state='disable')
 
         read_or_not_text.config(state='disable', bg='#ffffff')
         publication_year_text.config(state='disable', bg='#ffffff')
@@ -511,7 +516,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     edit_button.config(text='edit', command=begin_edit_paper, state='normal')
     edit_button.pack(side='right')
     del_button = tk.Button(button_frame)
-    del_button.config(text='delete', command=del_paper, state = 'normal')
+    del_button.config(text='delete', command=del_paper, state = 'disable')
     del_button.pack(side='left')
 
     # 在修改区添加
@@ -607,6 +612,84 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     
 def open_setting_ui(ui:TkUI):
 
+    def begin_edit_setting():
+        pdf_path_entry.configure(state='normal', bg='#e8f0fe')
+        edit_button.configure(state='disable')
+        save_button.configure(state='normal')
+        resume_button.configure(state='normal')
+        pass
+
+    def edit_setting():
+        pdf_path = pdf_path_entry.get()
+        ui.m_conf.set("default", "pdf_reader", pdf_path)
+        ui.m_conf.write(open(SETTING_PATH, "w"))
+
+        pdf_path_entry.configure(state='disable', bg='#ffffff')
+        edit_button.configure(state='normal')
+        save_button.configure(state='disable')
+        resume_button.configure(state='disable')
+        pass
+
+    def resume_setting():
+        try: 
+            os.remove(SETTING_PATH) 
+        except:
+            pass
+        ui.get_setting()
+
+        pdf_path_entry.delete(0,'end')
+        pdf_path_entry.insert('end',ui.m_conf.get("default","pdf_reader"))
+        pdf_path_entry.configure(state='disable', bg='#ffffff')
+        edit_button.configure(state='normal')
+        save_button.configure(state='disable')
+        resume_button.configure(state='disable')
+        pass
+
+
+    setting_root = tk.Toplevel(ui.root)
+    setting_root.geometry('770x400')
+    setting_root.resizable(True, True)
+    setting_root.title("Setting")
+    setting_root.protocol("WM_DELETE_WINDOW",setting_root.destroy)
+
+    setting_root.grid_rowconfigure(1, weight=1)
+    setting_root.grid_columnconfigure(0, weight=1)
+    button_frame = tk.Frame(setting_root) # 按钮区
+    button_frame.grid(row=0, column=0, columnspan=2 ,sticky='new')
+
+    # 修改区
+    edit_canvas = tk.Canvas(setting_root)
+    edit_canvas.bind('<Configure>', lambda event: edit_canvas.config(scrollregion=edit_canvas.bbox('all')))
+    edit_canvas.grid(row=1, column=0, sticky='ewns')
+    # 修改区主体
+    edit_frame = tk.Frame(edit_canvas) 
+    edit_canvas.create_window((0,0), window=edit_frame, anchor='n')
+    # 修改区滚动条
+    ybar = ttk.Scrollbar(setting_root,orient=VERTICAL,command=edit_canvas.yview)
+    ybar.configure(command=edit_canvas.yview)
+    edit_canvas.configure(yscrollcommand=ybar.set)
+    ybar.grid(row=1, column = 1, sticky='ns')
+
+    # 在按钮区添加按钮
+    edit_button = tk.Button(button_frame)
+    edit_button.config(text='edit', command=begin_edit_setting, state='normal')
+    edit_button.pack(side='left')
+    save_button = tk.Button(button_frame)
+    save_button.config(text='save', command=edit_setting, state = 'disable')
+    save_button.pack(side='left')
+    resume_button = tk.Button(button_frame)
+    resume_button.config(text='default', command=resume_setting, state = 'disable')
+    resume_button.pack(side='left')
+
+    # 添加修改的设置内容
+    tk.Label(edit_canvas, text="pdf阅读器位置（推荐福昕pdf阅读器）：").pack()
+    pdf_path_entry = tk.Entry(edit_canvas, width= 80)
+    pdf_path_entry.insert('end',ui.m_conf.get("default","pdf_reader"))
+    pdf_path_entry.configure(state='disable')
+    pdf_path_entry.pack()
+    print(ui.m_conf.get("default","pdf_reader"))
+
+    setting_root.mainloop()
 
     return None
 
