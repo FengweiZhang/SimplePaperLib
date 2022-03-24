@@ -173,6 +173,41 @@ class DataBase:
         return ret_list
 
 
+    def get_all_pub(self)->list: 
+        # 查找数据库中全部的出版商
+        # return list
+        ret = []
+        origin_info = list(self.m_con.execute('''
+            select Publisher from paperlist;
+            '''))
+        pub_set = set()
+        for item in origin_info:
+            pub_set.add(item.get("Publisher"))
+        pub_set.add("")
+        ret = list(pub_set)
+
+        return ret
+
+    def get_all_tags(self)->list: 
+        # 查找数据库中全部的tag
+        # return list
+        ret = []
+        origin_info = list(self.m_con.execute('''
+            select Tags from paperlist;
+            '''))
+        tags_list = []
+        for item in origin_info:
+            tags_list.append(item.get("Tags"))
+        tag_set = set()
+        for item in tags_list:
+            for j in item.split('$'):
+                tag_set.add(j)
+        tag_set.add("")
+        ret = list(tag_set)
+        # print(ret)
+        return ret
+    
+
 
     def show_all_paper(self):
         # 返回全部内容字典

@@ -1,7 +1,9 @@
 import tkinter as tk
 from tkinter import DISABLED, HORIZONTAL, VERTICAL, ttk
 import copy
+from tkinter.messagebox import showerror
 from tkinter.scrolledtext import ScrolledText
+import configparser, os, subprocess
 
 
 from database import DataBase
@@ -10,14 +12,20 @@ from globalvar import *
 
 class TkUI:
 
-    def __init__(self, db:DataBase=None):
+    def __init__(self, 
+        db:DataBase=None, 
+        conf:configparser.ConfigParser=None
+        ):
         #  内部变量赋值
         self.m_db = db      # 数据库
+        self.m_conf = conf  # 配置文件
 
-        self.all_tag_list = ['123', "1234"]
-        self.all_puber_list = ['abc', "abcd"]
+        self.all_tag_list = self.m_db.get_all_tags()
+        self.all_puber_list = self.m_db.get_all_pub()
         self.paper_list = []
         self.filter = {}
+
+        self.setting_dict = self.get_setting()
 
         self.root = tk.Tk()     # 主窗口
         self.menu = tk.Menu(self.root)  # 菜单栏
@@ -42,12 +50,12 @@ class TkUI:
         # 窗口基本设置
         self.root.geometry("1500x800+100+100")
         self.root.title("Simple Paper Lib")
-        self.root.protocol("WM_DELETE_WINDOW",self.root.quit)
+        self.root.protocol("WM_DELETE_WINDOW",self.root.destroy)
 
         # 设置菜单栏
         self.menu.add_command(label="Add", command=lambda:open_add_ui(self))
-        self.menu.add_command(label="Setting", command=tk.DISABLED)
-        self.menu.add_command(label="Exit", command=tk.DISABLED)
+        self.menu.add_command(label="Setting", command=lambda:open_setting_ui(self))
+        self.menu.add_command(label="Exit", command=self.root.destroy)
         # 放置菜单栏
         self.root.config(menu=self.menu)
 
@@ -195,6 +203,27 @@ class TkUI:
             self.show_table.insert('', i, values=val, iid=str(item.get("No")) )
         return
 
+    def search_renewer(self):
+        # 更新查找词条
+        self.all_tag_list = self.m_db.get_all_tags()
+        self.all_puber_list = self.m_db.get_all_pub()
+        for item in self.search_tag_input_list:
+            item.configure(values = self.all_tag_list)
+        for item in self.search_puber_input_list:
+            item.configure(values = self.all_puber_list)
+        pass
+    
+
+    def get_setting(self):
+        # 获取设置文件
+        # 返回字典
+        ret = {}
+
+        return ret
+
+
+
+
 def search(ui:TkUI, info:dict={}):
     # 使用db搜索条目
     if (info == {}):
@@ -207,86 +236,89 @@ def open_add_ui(ui:TkUI):
 
     def add_paper():
         paper_dict = {}
-        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end')
-        paper_dict['Publisher'] = publisher_text.get(1.0,'end')
-        paper_dict['Author'] = author_text.get(1.0,'end')
-        paper_dict['PaperName'] = paper_name_text.get(1.0,'end')
-        paper_dict['Url'] = url_text.get(1.0,'end')
-        paper_dict['Path'] = path_text.get(1.0,'end')        
+        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end').rstrip()
+        paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
+        paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
+        paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
+        paper_dict['Url'] = url_text.get(1.0,'end').rstrip()
+        paper_dict['Path'] = path_text.get(1.0,'end').rstrip() 
         
+        print(paper_dict)
         ui.m_db.add_paper(paper_dict)
         ui.table_renewer()
-        edit_root.destroy()
+        ui.search_renewer()
+        
+        add_root.destroy()
         return
 
 
-    edit_root = tk.Toplevel(ui.root)
-    edit_root.geometry('750x400')
-    edit_root.resizable(True, True)
-    edit_root.title("Add Paper")
-    edit_root.protocol("WM_DELETE_WINDOW",edit_root.destroy)
+    add_root = tk.Toplevel(ui.root)
+    add_root.geometry('750x400')
+    add_root.resizable(True, True)
+    add_root.title("Add Paper")
+    add_root.protocol("WM_DELETE_WINDOW",add_root.destroy)
 
-    edit_root.grid_rowconfigure(1, weight=1)
-    edit_root.grid_columnconfigure(0, weight=1)
-    button_frame = tk.Frame(edit_root) # 按钮区
+    add_root.grid_rowconfigure(1, weight=1)
+    add_root.grid_columnconfigure(0, weight=1)
+    button_frame = tk.Frame(add_root) # 按钮区
     button_frame.grid(row=0, column=0, columnspan=2 ,sticky='new')
 
-    edit_canvas = tk.Canvas(edit_root)
-    edit_canvas.bind('<Configure>', lambda event: edit_canvas.config(scrollregion=edit_canvas.bbox('all')))
-    edit_canvas.grid(row=1, column=0, sticky='ewns')
+    add_canvas = tk.Canvas(add_root)
+    add_canvas.bind('<Configure>', lambda event: add_canvas.config(scrollregion=add_canvas.bbox('all')))
+    add_canvas.grid(row=1, column=0, sticky='ewns')
     # 修改区主体
-    edit_frame = tk.Frame(edit_canvas) 
-    edit_canvas.create_window((0,0), window=edit_frame, anchor='n')
+    add_frame = tk.Frame(add_canvas) 
+    add_canvas.create_window((0,0), window=add_frame, anchor='n')
     # 修改区滚动条
-    ybar = ttk.Scrollbar(edit_root,orient=VERTICAL,command=edit_canvas.yview)
-    ybar.configure(command=edit_canvas.yview)
-    edit_canvas.configure(yscrollcommand=ybar.set)
+    ybar = ttk.Scrollbar(add_root,orient=VERTICAL,command=add_canvas.yview)
+    ybar.configure(command=add_canvas.yview)
+    add_canvas.configure(yscrollcommand=ybar.set)
     ybar.grid(row=1, column = 1, sticky='ns')
 
     # 在按钮区添加按钮
-    edit_button = tk.Button(button_frame)
-    edit_button.config(text='Add', command=add_paper, state='normal')
-    edit_button.grid(row=0, column=0)
+    add_button = tk.Button(button_frame)
+    add_button.config(text='Add', command=add_paper, state='normal')
+    add_button.grid(row=0, column=0)
 
     # 添加区
     # PublicationYear
-    publication_year_label = tk.Label(edit_frame, text="发表年份：")
+    publication_year_label = tk.Label(add_frame, text="发表年份：")
     publication_year_label.grid(row=3,column=0)
-    publication_year_text = tk.Text(edit_frame, height=1)
+    publication_year_text = tk.Text(add_frame, height=1)
     publication_year_text.config(state='normal', bg='#ffffff')
     publication_year_text.grid(row=4,column=0)
     # Publisher
-    publisher_label = tk.Label(edit_frame, text="出版商：")
+    publisher_label = tk.Label(add_frame, text="出版商：")
     publisher_label.grid(row=5,column=0)
-    publisher_text = tk.Text(edit_frame, height=1)
+    publisher_text = tk.Text(add_frame, height=1)
     publisher_text.config(state='normal', bg='#ffffff')
     publisher_text.grid(row=6,column=0)
     # Author
-    author_label = tk.Label(edit_frame, text="作者：")
+    author_label = tk.Label(add_frame, text="作者：")
     author_label.grid(row=7,column=0)
-    author_text = tk.Text(edit_frame, height=1)
+    author_text = tk.Text(add_frame, height=1)
     author_text.config( state='normal', bg='#ffffff')
     author_text.grid(row=8,column=0)
     # PaperName
-    paper_name_label = tk.Label(edit_frame, text="论文名：")
+    paper_name_label = tk.Label(add_frame, text="论文名：")
     paper_name_label.grid(row=9,column=0)
-    paper_name_text = tk.Text(edit_frame, height=3)
+    paper_name_text = tk.Text(add_frame, height=3)
     paper_name_text.config( state='normal', bg='#ffffff')
     paper_name_text.grid(row=10,column=0)
     # Url
-    url_label = tk.Label(edit_frame, text="网页链接：")
+    url_label = tk.Label(add_frame, text="网页链接：")
     url_label.grid(row=15,column=0)
-    url_text = tk.Text(edit_frame, height=1)
+    url_text = tk.Text(add_frame, height=1)
     url_text.config(state='normal', bg='#ffffff')
     url_text.grid(row=16,column=0)
     # Path
-    path_label = tk.Label(edit_frame, text="本地目录：")
+    path_label = tk.Label(add_frame, text="本地目录：")
     path_label.grid(row=17,column=0)
-    path_text = tk.Text(edit_frame, height=1)
+    path_text = tk.Text(add_frame, height=1)
     path_text.config(state='normal', bg='#ffffff')
     path_text.grid(row=18,column=0)
 
-    edit_root.mainloop()
+    add_root.mainloop()
 
 
 def open_edit_ui(event, ui:TkUI, paper_no:str):
@@ -327,24 +359,26 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             q_text_list[i].config(state='disable', bg='#ffffff')
 
         paper_dict['ReadOrNot'] = int(read_or_not_text.get(1.0,'end'))
-        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end')
-        paper_dict['Publisher'] = publisher_text.get(1.0,'end')
-        paper_dict['Author'] = author_text.get(1.0,'end')
-        paper_dict['PaperName'] = paper_name_text.get(1.0,'end')
-        paper_dict['Tags'] = tags_text.get(1.0,'end')
-        paper_dict['Notes'] = notes_text.get(1.0,'end')
-        paper_dict['Url'] = url_text.get(1.0,'end')
-        paper_dict['Path'] = path_text.get(1.0,'end')
+        paper_dict['PublicationYear'] = publication_year_text.get(1.0,'end').rstrip()
+        paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
+        paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
+        paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
+        paper_dict['Tags'] = tags_text.get(1.0,'end').rstrip()
+        paper_dict['Notes'] = notes_text.get(1.0,'end').rstrip()
+        paper_dict['Url'] = url_text.get(1.0,'end').rstrip()
+        paper_dict['Path'] = path_text.get(1.0,'end').rstrip()
         for i in range(10):
-            paper_dict['Q'+str(i)] = q_text_list[i].get(1.0,'end')
+            paper_dict['Q'+str(i)] = q_text_list[i].get(1.0,'end').rstrip()
         
         ui.m_db.modi_paper(paper_dict)
+        ui.search_renewer()
+        ui.table_renewer()
 
-        for item in ui.paper_list:
-            val = []
-            for tem in DataBase.SIMPLE_FIELD_LIST:
-                val.append(item.get(tem))
-            ui.show_table.item(str(item.get("No")), values=val )
+        # for item in ui.paper_list:
+        #     val = []
+        #     for tem in DataBase.SIMPLE_FIELD_LIST:
+        #         val.append(item.get(tem))
+        #     ui.show_table.item(str(item.get("No")), values=val )
         # print(paper_dict)
 
         # print(ui.m_db.show_all_paper())
@@ -355,8 +389,25 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         dic = {"No":paper_no}
         ui.m_db.del_paper(dic)
         ui.table_renewer()
+        ui.table_renewer()
+
         edit_root.destroy()
         pass
+
+    def open_paper():
+        # 通过路径使用pdf阅读器打开文件
+        pdf_reader = ui.m_conf.get('default', "pdf_reader")
+        if not os.path.isfile(pdf_reader):
+            showerror("failed", "pdf阅读器目录错误")
+        file_path = path_text.get(1.0,'end').rstrip()
+        if not os.path.isfile(file_path):
+            showerror("failed", "目标文件pdf目录错误")
+            return
+        
+        subprocess.Popen([f"{pdf_reader}",f"\"{file_path}\""], shell=True)
+        print(f"{pdf_reader} \"{file_path}\"")
+        return
+        
 
     # 正式开始
     paper_dict = {}
@@ -391,15 +442,18 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     ybar.grid(row=1, column = 1, sticky='ns')
 
     # 在按钮区添加按钮
-    edit_button = tk.Button(button_frame)
-    edit_button.config(text='edit', command=begin_edit_paper, state='normal')
-    edit_button.grid(row=0, column=0)
+    open_button = tk.Button(button_frame)
+    open_button.config(text='open', command=open_paper, state = 'normal')
+    open_button.pack(side='right')
     save_button = tk.Button(button_frame)
     save_button.config(text='save', command=edit_paper, state = 'disable')
-    save_button.grid(row=0, column=1)
+    save_button.pack(side='right')
+    edit_button = tk.Button(button_frame)
+    edit_button.config(text='edit', command=begin_edit_paper, state='normal')
+    edit_button.pack(side='right')
     del_button = tk.Button(button_frame)
     del_button.config(text='delete', command=del_paper, state = 'normal')
-    del_button.grid(row=0, column=2)
+    del_button.pack(side='left')
 
     # 在修改区添加
     # No 序号
@@ -492,5 +546,8 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
 
     
     
+def open_setting_ui(ui:TkUI):
 
+
+    return None
 
