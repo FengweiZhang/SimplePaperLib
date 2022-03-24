@@ -107,10 +107,11 @@ class TkUI:
         self.keyword_frame.grid(row=4,column=0, sticky='we')
         tk.Label(self.keyword_frame, text='含关键词').grid(row=0, column=0)
         # 搜索模式
-        self.search_papername_flag = tk.IntVar()    # 标记从论文标题中搜索
-        self.search_notes_flag = tk.IntVar()        # 标记从备注中搜索
-        tk.Checkbutton(self.keyword_frame, text='标题',variable=self.search_papername_flag, onvalue=1, offvalue=0).grid(row=1, column=0)
-        tk.Checkbutton(self.keyword_frame, text='备注',variable=self.search_notes_flag, onvalue=1, offvalue=0).grid(row=2, column=0)
+        self.search_flag = tk.IntVar()    # 标记从论文标题中搜索
+        self.search_flag.set(1)
+        tk.Radiobutton(self.keyword_frame, text='仅标题',variable=self.search_flag, value=1).grid(row=1, column=0)
+        tk.Radiobutton(self.keyword_frame, text='仅备注',variable=self.search_flag, value=2).grid(row=2, column=0)
+        tk.Radiobutton(self.keyword_frame, text='标题+备注',variable=self.search_flag, value=3).grid(row=3, column=0)
         # 搜索内容
         self.search_keyword_input_entry = tk.Entry(self.keyword_frame)
         self.search_keyword_input_entry.grid(row=0, column=1)
@@ -215,7 +216,7 @@ class TkUI:
     def search_paper(self):
         # 更新筛选器
         # pubyear_begin pubyear_end puber_list tag_list keyword
-        # papername_flag notes_flag
+        # keyword_flag
 
         # self.paper_list = []    # 当前展示的paper
         # self.filter # 筛选条件
@@ -256,11 +257,8 @@ class TkUI:
         if self.search_keyword_input_entry.get() != "":
             loc_filter["keyword"] = self.search_keyword_input_entry.get()
         
-        if self.search_papername_flag.get() == 1:
-            loc_filter["papername_flag"] = 1
-
-        if self.search_notes_flag.get() == 1:
-            loc_filter["notes_flag"] = 1
+            if self.search_flag.get() == 1 or self.search_flag.get() == 2 or self.search_flag.get() == 3:
+                loc_filter["keyword_flag"] = self.search_flag.get()
 
 
         if loc_filter!={}:
@@ -277,8 +275,7 @@ class TkUI:
         while(len(self.search_puber_input_list)>0):
             self.search_remove_puber()
         self.search_add_puber()
-        self.search_papername_flag.set(0)
-        self.search_notes_flag.set(0)
+        self.search_flag.set(1)
         self.search_keyword_input_entry.delete(0, "end")
 
         self.filter = {}

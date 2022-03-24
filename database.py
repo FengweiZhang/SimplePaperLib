@@ -185,7 +185,7 @@ class DataBase:
     def find_paper(self, info:dict):
         # 查找函数，按字典info信息查找特定的paper
         # pubyear_begin pubyear_end puber_list tag_list keyword
-        # papername_flag notes_flag
+        # keyword_flag
         ret_list = []
         search_condition = ""
 
@@ -226,15 +226,15 @@ class DataBase:
                 search_condition += ")"
         if info.get("keyword"):
             sear_key = info.get("keyword")
-            if (info.get("papername_flag")==1 and info.get("notes_flag") == 1):
+            if (info.get("keyword_flag") == 3):
                 if search_condition != "":
                     search_condition += " AND "
                 search_condition += f"(PaperName LIKE \'%{sear_key}%\' OR Notes LIKE \'%{sear_key}%\')"
-            elif (info.get("papername_flag")==1):
+            elif (info.get("keyword_flag") == 1):
                 if search_condition != "":
                     search_condition += " AND "
                 search_condition += f"PaperName LIKE \'%{sear_key}%\'"
-            elif (info.get("notes_flag") == 1):
+            elif (info.get("keyword_flag") == 2):
                 if search_condition != "":
                     search_condition += " AND "
                 search_condition += f"Notes LIKE \'%{sear_key}%\'"
