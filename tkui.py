@@ -1,15 +1,14 @@
 import tkinter as tk
 from tkinter import DISABLED, HORIZONTAL, VERTICAL, ttk, filedialog
-import copy
 from tkinter.messagebox import showerror
 from tkinter.scrolledtext import ScrolledText
-import configparser, os, subprocess
+import configparser, os, subprocess, copy
 
 
 from database import DataBase
 from globalvar import *
 
-SETTING_PATH = ".\\setting.conf"
+SETTING_PATH = "setting.conf"
 
 class TkUI:
 
@@ -17,7 +16,11 @@ class TkUI:
         db:DataBase=None, 
         ):
         #  内部变量赋值
-        self.m_db = db      # 数据库
+        # 数据库
+        if (db != None):
+            self.m_db = db      
+        else:
+            self.m_db = DataBase()
         self.m_conf = None  # 配置文件
         self.get_setting()  # m_conf赋值
 
@@ -79,7 +82,6 @@ class TkUI:
         tk.Label(self.pubyear_frame,text="到：").pack(side='left')
         self.pubyear_end_entry = tk.Entry(self.pubyear_frame, width=5)
         self.pubyear_end_entry.pack(side='left')
-
         # 按照标签搜索
         self.tag_frame = tk.Frame(self.search_frame)
         self.tag_frame.grid(row=2, column=0, sticky='we')
@@ -90,7 +92,6 @@ class TkUI:
         self.search_tag_input_list = []
         self.search_tag_input_list.append( ttk.Combobox(self.tag_frame, values=self.all_tag_list) )
         self.search_tag_input_list[0].grid(row=0, column=2)
-
         # 按照期刊搜索
         self.puber_frame = tk.Frame(self.search_frame)
         self.puber_frame.grid(row=3, column=0, sticky='we')
@@ -101,12 +102,11 @@ class TkUI:
         self.search_puber_input_list = []
         self.search_puber_input_list.append( ttk.Combobox(self.puber_frame, values=self.all_puber_list) )
         self.search_puber_input_list[0].grid(row=0, column=2)
-
         # 按关键词搜索
         self.keyword_frame = tk.Frame(self.search_frame)
         self.keyword_frame.grid(row=4,column=0, sticky='we')
         tk.Label(self.keyword_frame, text='含关键词').grid(row=0, column=0)
-        # 搜索模式
+        # 关键词搜索模式
         self.search_flag = tk.IntVar()    # 标记从论文标题中搜索
         self.search_flag.set(1)
         tk.Radiobutton(self.keyword_frame, text='仅标题',variable=self.search_flag, value=1).grid(row=1, column=0)
@@ -120,7 +120,8 @@ class TkUI:
         tk.Button(self.search_frame, text="筛选", width=20, height=4, command=self.search_paper).grid(row=5, column=0, sticky='we')
         tk.Button(self.search_frame, text="重置", width=20, height=2, command=self.resume_paper).grid(row=6, column=0, sticky='we')
 
-        # 显示主体
+
+        # 文献列表显示主体
         self.show_frame.config(bd='1p')
         self.show_frame.grid_rowconfigure(0, weight=1)
         self.show_frame.grid_columnconfigure(0, weight=1)
@@ -147,15 +148,15 @@ class TkUI:
         self.show_table.configure(xscrollcommand=self.show_table_xbar.set)
         self.show_table_xbar.grid(row=1, column=0, columnspan=2, sticky='ew')
 
-
         # 主循环
         self.root.mainloop()
 
-        return None
+        return MY_SUCCESS
 
 
     def search_add_tag(self):
         # 在搜索面板添加tag搜索条件输入框
+        # 仅UI操作
         self.search_tag_input_list.append(ttk.Combobox(self.tag_frame, values=self.all_tag_list))
         self.search_tag_input_list[-1].grid(row=len(self.search_tag_input_list)-1, column=2)
 
@@ -163,6 +164,7 @@ class TkUI:
 
     def search_remove_tag(self):
         # 在搜索面板去除tag搜索条件输入框
+        # 仅UI操作
         if(len(self.search_tag_input_list) <= 0):
             return None
         else:
@@ -173,6 +175,7 @@ class TkUI:
 
     def search_add_puber(self):
         # 在搜索面板添加puber搜索条件输入框
+        # 仅UI操作
         self.search_puber_input_list.append(ttk.Combobox(self.puber_frame, values=self.all_puber_list))
         self.search_puber_input_list[-1].grid(row=len(self.search_puber_input_list)-1, column=2)
 
@@ -180,6 +183,7 @@ class TkUI:
 
     def search_remove_puber(self):
         # 在搜索面板去除tag搜索条件输入框
+        # 仅UI操作
         if(len(self.search_puber_input_list) <= 0):
             return None
         else:
@@ -211,10 +215,10 @@ class TkUI:
             item.configure(values = self.all_tag_list)
         for item in self.search_puber_input_list:
             item.configure(values = self.all_puber_list)
-        pass
+        return MY_SUCCESS
 
     def search_paper(self):
-        # 更新筛选器
+        # 更新筛选器，更新筛选结果
         # pubyear_begin pubyear_end puber_list tag_list keyword
         # keyword_flag
 
@@ -222,6 +226,7 @@ class TkUI:
         # self.filter # 筛选条件
         loc_filter = {}
 
+        # 更新发表年份筛选条件
         if self.pubyear_begin_entry.get() != "":
             try:
                 pubyear_begin = int(self.pubyear_begin_entry.get())
@@ -238,35 +243,33 @@ class TkUI:
             except:
                 showerror("Failed", "发表结束年份错误：请输入自然数")
                 return
-
-
+        # 更新标签筛选条件
         loc_tag_list = []
         for item in self.search_tag_input_list:
             if item.get() != "":
                 loc_tag_list.append(item.get())
         if loc_tag_list != []:
             loc_filter['tag_list'] = loc_tag_list
-        
+        # 更新出版商筛选条件
         loc_puber_list = []
         for item in self.search_puber_input_list:
             if item.get() != "":
                 loc_puber_list.append(item.get())
         if loc_puber_list != "":
             loc_filter['puber_list'] = loc_puber_list
-
+        # 更新关键词筛选条件
         if self.search_keyword_input_entry.get() != "":
             loc_filter["keyword"] = self.search_keyword_input_entry.get()
         
             if self.search_flag.get() == 1 or self.search_flag.get() == 2 or self.search_flag.get() == 3:
                 loc_filter["keyword_flag"] = self.search_flag.get()
-
-
+        # 更新self.filter
         if loc_filter!={}:
             self.filter = copy.deepcopy(loc_filter)
             self.table_renewer()
 
     def resume_paper(self):
-        # 重置搜索结果
+        # 重置筛选条件，重置搜索结果
         self.pubyear_begin_entry.delete(0,"end")
         self.pubyear_end_entry.delete(0,'end')
         while(len(self.search_tag_input_list)>0):
@@ -284,7 +287,6 @@ class TkUI:
             
     def get_setting(self):
         # 获取设置文件
-        # 返回字典
         conf = configparser.ConfigParser()
         if not os.path.isfile(SETTING_PATH):
             conf.add_section("default")
@@ -293,23 +295,26 @@ class TkUI:
         else:
             conf.read(SETTING_PATH, encoding="utf-8")
         self.m_conf = copy.deepcopy(conf)
-        return conf
+        return
 
 
 
 
 def search(ui:TkUI, info:dict={}):
-    # 使用db搜索条目
+    # 使用ui.m_db搜索条目
     if (info == {}):
         # 返回全部paper
         return ui.m_db.show_all_paper()
     else:
-        return ui.m_db.find_paper(ui.filter)
-    pass
-    
+        return ui.m_db.find_paper(info)
+
+
 def open_add_ui(ui:TkUI):
+    # 添加文献界面的实现函数
 
     def add_paper():
+        # 添加按钮的功能函数
+        # 获取文献信息并将文献添加到数据库
         paper_dict = {}
         paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
@@ -318,7 +323,8 @@ def open_add_ui(ui:TkUI):
         paper_dict['Url'] = url_text.get(1.0,'end').rstrip()
         paper_dict['Path'] = path_text.get(1.0,'end').rstrip() 
         
-        print(paper_dict)
+        # 更新显示信息
+        # print(paper_dict)
         ui.m_db.add_paper(paper_dict)
         ui.table_renewer()
         ui.search_renewer()
@@ -326,22 +332,21 @@ def open_add_ui(ui:TkUI):
         add_root.destroy()
         return
 
-
+    # 添加文献界面主窗口
     add_root = tk.Toplevel(ui.root)
     add_root.geometry('750x400')
     add_root.resizable(True, True)
     add_root.title("Add Paper")
     add_root.protocol("WM_DELETE_WINDOW",add_root.destroy)
-
+    # 主窗口划分
     add_root.grid_rowconfigure(1, weight=1)
     add_root.grid_columnconfigure(0, weight=1)
     button_frame = tk.Frame(add_root) # 按钮区
     button_frame.grid(row=0, column=0, columnspan=2 ,sticky='new')
-
-    add_canvas = tk.Canvas(add_root)
+    add_canvas = tk.Canvas(add_root) # 添加区
     add_canvas.bind('<Configure>', lambda event: add_canvas.config(scrollregion=add_canvas.bbox('all')))
     add_canvas.grid(row=1, column=0, sticky='ewns')
-    # 修改区主体
+    # 添加区主体
     add_frame = tk.Frame(add_canvas) 
     add_canvas.create_window((0,0), window=add_frame, anchor='n')
     # 修改区滚动条
@@ -412,10 +417,10 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
 
     # 函数定义：
     def begin_edit_paper():
+        # edit 按钮的响应函数，修改按钮状态
         edit_button.config(state='disable')
         save_button.config(state='normal')
         del_button.config(state='normal')
-
 
         read_or_not_button.config(state='normal', bg='#e8f0fe')
         publication_year_text.config(state='normal', bg='#e8f0fe')
@@ -432,6 +437,8 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             q_text_list[i].config(state='normal', bg='#e8f0fe')
 
     def edit_paper():
+        # save 按钮的响应函数
+        # 读取并保存文献信息
         edit_button.config(state='normal')
         save_button.config(state='disable')
         del_button.config(state='disable')
@@ -461,23 +468,17 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         paper_dict['Path'] = path_text.get(1.0,'end').rstrip()
         for i in range(10):
             paper_dict['Q'+str(i)] = q_text_list[i].get(1.0,'end').rstrip()
-        
+
+        # 更新显示        
         ui.m_db.modi_paper(paper_dict)
         ui.search_renewer()
         ui.table_renewer()
 
-        # for item in ui.paper_list:
-        #     val = []
-        #     for tem in DataBase.SIMPLE_FIELD_LIST:
-        #         val.append(item.get(tem))
-        #     ui.show_table.item(str(item.get("No")), values=val )
-        # print(paper_dict)
-
-        # print(ui.m_db.show_all_paper())
         return
 
     def del_paper():
-        # 删除 paper
+        # delete 按钮的响应函数
+        # 删除文献
         dic = {"No":paper_no}
         ui.m_db.del_paper(dic)
         ui.table_renewer()
@@ -503,18 +504,19 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
 
     # 正式开始
     paper_dict = {}
+    # 查找对应文献
     for item in ui.paper_list:
         if (str(item.get("No"))==paper_no):
             # paper_dict = copy.deepcopy(item)
             paper_dict = item
             break
 
+    # 修改窗口主窗口
     edit_root = tk.Toplevel(ui.root)
     edit_root.geometry('770x800')
     edit_root.resizable(False, True)
     edit_root.title("Paper: "+str(paper_dict.get("PaperName")))
     edit_root.protocol("WM_DELETE_WINDOW",edit_root.destroy)
-
     edit_root.grid_rowconfigure(1, weight=1)
     edit_root.grid_columnconfigure(0, weight=1)
     button_frame = tk.Frame(edit_root) # 按钮区
@@ -631,7 +633,6 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     last_read_date_text.insert('end',str(paper_dict.get("LastReadDate")))
     last_read_date_text.config(state='disable', bg='#ffffff')
     last_read_date_text.grid(row=20,column=0)
-
     # 10Q
     q_label_list = []
     q_text_list = []
@@ -643,14 +644,15 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         q_text_list[-1].configure(state='disable', bg='#ffffff')
         q_text_list[-1].grid(row=21+2*i+1, column=0)
     
-
     edit_root.mainloop()
 
     
     
 def open_setting_ui(ui:TkUI):
+    # 主窗口菜单栏设置按钮响应函数
 
     def begin_edit_setting():
+        # edit 按钮响应函数
         pdf_path_entry.configure(state='normal', bg='#e8f0fe')
         edit_button.configure(state='disable')
         save_button.configure(state='normal')
@@ -659,6 +661,8 @@ def open_setting_ui(ui:TkUI):
         pass
 
     def edit_setting():
+        # save 按钮响应函数
+        # 保存设置信息
         pdf_path = pdf_path_entry.get()
         print(pdf_path)
         ui.m_conf.set("default", "pdf_reader", pdf_path)
@@ -672,6 +676,8 @@ def open_setting_ui(ui:TkUI):
         pass
 
     def resume_setting():
+        # resume按钮响应函数
+        # 删除原有设置，恢复默认设置
         try: 
             os.remove(SETTING_PATH) 
         except:
@@ -687,7 +693,7 @@ def open_setting_ui(ui:TkUI):
         pdf_path_button.configure(state='disable')
         pass
 
-
+    # 设置窗口主函数
     setting_root = tk.Toplevel(ui.root)
     setting_root.geometry('770x400')
     setting_root.resizable(True, True)
