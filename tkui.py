@@ -37,7 +37,7 @@ class TkUI:
         self.root.grid_columnconfigure(0, weight=1)
         self.info_frame = tk.Frame(self.root)   # 底端显示信息的框
         self.info_frame.grid(row=1, column=0, sticky=tk.NSEW)
-        self.body_frame = tk.Frame(self.root, bg='blue')   # 主体frame
+        self.body_frame = tk.Frame(self.root)   # 主体frame
         self.body_frame.grid(row=0, column=0, sticky=tk.NSEW)
 
         # 设置body_frame的分割 允许show_frame填充
@@ -45,7 +45,7 @@ class TkUI:
         self.body_frame.grid_columnconfigure(1, weight=1)
         self.search_frame = tk.Frame(self.body_frame, )   # 搜索frame
         self.search_frame.grid(row=0, column=0, sticky=tk.NSEW)
-        self.show_frame = tk.Frame(self.body_frame, bg = 'red')     # 显示frame
+        self.show_frame = tk.Frame(self.body_frame)     # 显示frame
         self.show_frame.grid(row=0, column=1, sticky=tk.NSEW)
 
 
@@ -127,8 +127,11 @@ class TkUI:
         self.show_frame.grid_columnconfigure(0, weight=1)
         # 显示表
         self.show_table = ttk.Treeview(self.show_frame, columns=DataBase.SIMPLE_FIELD_LIST, selectmode='extended', show='headings')
+        i = 0
+        colunm_width_list = [100,120,130,150,700,400]
         for item in DataBase.SIMPLE_FIELD_LIST:
-            self.show_table.column(item,anchor='w', stretch=0)
+            self.show_table.column(item,anchor='w', stretch=0, width=colunm_width_list[i])
+            i += 1
             self.show_table.heading(item,text=item)
         self.paper_list = search(self)
         i = 0
@@ -151,7 +154,7 @@ class TkUI:
         # 主循环
         self.root.mainloop()
 
-        return MY_SUCCESS
+        return None
 
 
     def search_add_tag(self):
@@ -316,9 +319,17 @@ def open_add_ui(ui:TkUI):
         # 添加按钮的功能函数
         # 获取文献信息并将文献添加到数据库
         paper_dict = {}
-        paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
+        if publication_year_text.get(1.0,'end').rstrip() != "":
+            try:
+                paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
+            except:
+                showerror("Failed", "文献发表年份必须为整数")
+                return
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
         paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
+        if paper_name_text.get(1.0,'end').rstrip() == "":
+            showerror("Failed", "文献名不能为空")
+            return 
         paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
         paper_dict['Url'] = url_text.get(1.0,'end').rstrip()
         paper_dict['Path'] = path_text.get(1.0,'end').rstrip() 
@@ -338,6 +349,7 @@ def open_add_ui(ui:TkUI):
     add_root.resizable(True, True)
     add_root.title("Add Paper")
     add_root.protocol("WM_DELETE_WINDOW",add_root.destroy)
+    add_root.wm_attributes('-topmost',1)
     # 主窗口划分
     add_root.grid_rowconfigure(1, weight=1)
     add_root.grid_columnconfigure(0, weight=1)
@@ -393,6 +405,7 @@ def open_add_ui(ui:TkUI):
     url_text.grid(row=16,column=0)
     # Path
     def path_button_func():
+        add_root.wm_attributes('-topmost',0)
         path_info = filedialog.askopenfilename(
             title = "选择本地pdf文件",
             initialdir='.',
@@ -400,6 +413,8 @@ def open_add_ui(ui:TkUI):
         )
         path_text.delete(1.0,tk.END)
         path_text.insert('end', str(path_info))
+        add_root.wm_attributes('-topmost',1)
+        return
     path_frame = tk.Frame(add_frame)
     path_frame.grid(row=17, column=0)
     path_label = tk.Label(path_frame, text="本地目录：",height=2)
@@ -458,9 +473,16 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             q_text_list[i].config(state='disable', bg='#ffffff')
 
         paper_dict['ReadOrNot'] = read_or_not_button_val.get()
-        paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
+        if publication_year_text.get(1.0,'end').rstrip() != "":
+            try:
+                paper_dict['PublicationYear'] = int(publication_year_text.get(1.0,'end').rstrip())
+            except:
+                showerror("Failed", "文献发表年份必须为整数")
         paper_dict['Publisher'] = publisher_text.get(1.0,'end').rstrip()
         paper_dict['Author'] = author_text.get(1.0,'end').rstrip()
+        if paper_name_text.get(1.0,'end').rstrip() == "":
+            showerror("Failed","文献名不能为空")
+            return
         paper_dict['PaperName'] = paper_name_text.get(1.0,'end').rstrip()
         paper_dict['Tags'] = tags_text.get(1.0,'end').rstrip()
         paper_dict['Notes'] = notes_text.get(1.0,'end').rstrip()
@@ -481,7 +503,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         # 删除文献
         dic = {"No":paper_no}
         ui.m_db.del_paper(dic)
-        ui.table_renewer()
+        ui.search_renewer()
         ui.table_renewer()
 
         edit_root.destroy()
@@ -555,6 +577,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     no_label.grid(row=0,column=0)
     # ReadOrNot 标识
     read_or_not_button_val = tk.IntVar()
+    read_or_not_button_val.set(int(paper_dict.get("ReadOrNot")))
     read_or_not_button = tk.Checkbutton(edit_frame,variable=read_or_not_button_val, text="阅读标记：",height=1, onvalue=1, offvalue=0)
     read_or_not_button.config(state='disable', bg='#ffffff')
     read_or_not_button.grid(row=2,column=0)
@@ -616,6 +639,9 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
         )
         path_text.delete(1.0,tk.END)
         path_text.insert('end', str(path_info))
+        edit_root.wm_attributes('-topmost',1)
+        edit_root.wm_attributes('-topmost',0)
+        return
     path_frame = tk.Frame(edit_frame)
     path_frame.grid(row=17, column=0)
     path_label = tk.Label(path_frame, text="本地目录：",height=2)
@@ -699,6 +725,7 @@ def open_setting_ui(ui:TkUI):
     setting_root.resizable(True, True)
     setting_root.title("Setting")
     setting_root.protocol("WM_DELETE_WINDOW",setting_root.destroy)
+    setting_root.wm_attributes('-topmost',1)
 
     setting_root.grid_rowconfigure(1, weight=1)
     setting_root.grid_columnconfigure(0, weight=1)
@@ -731,13 +758,16 @@ def open_setting_ui(ui:TkUI):
 
     # 添加修改的设置内容
     def pdf_path_button_func():
+        setting_root.wm_attributes('-topmost',0)
         filepath = filedialog.askopenfilename(
             title = "选择pdf阅读器",
             initialdir='.',
             filetypes = [('Exe','*.exe')]
         )
-        pdf_path_entry.delete(0,"end")
-        pdf_path_entry.insert('end',filepath)
+        if filepath != "":
+            pdf_path_entry.delete(0,"end")
+            pdf_path_entry.insert('end',filepath)
+        setting_root.wm_attributes('-topmost',1)
         pass
 
     tk.Label(edit_canvas, text="pdf阅读器位置（推荐福昕pdf阅读器）：").pack()

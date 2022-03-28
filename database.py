@@ -179,7 +179,8 @@ class DataBase:
         # 返回文献的字典的列表
 
         ret_list = list(self.m_con.execute('''
-            select * from paperlist;
+            select * from paperlist
+            ORDER BY PublicationYear, Publisher, PaperName  DESC;
             '''))
 
         return ret_list
@@ -249,7 +250,8 @@ class DataBase:
         
         ret_list = list(self.m_con.execute(f'''
             select * from paperlist
-            WHERE {search_condition};
+            WHERE {search_condition}
+            ORDER BY PublicationYear, Publisher, PaperName  DESC;
             '''))
         # print(ret_list)
 
@@ -268,6 +270,7 @@ class DataBase:
             pub_set.add(item.get("Publisher"))
         pub_set.add("")
         ret = list(pub_set)
+        ret.sort()
 
         return ret
 
@@ -287,6 +290,7 @@ class DataBase:
                 tag_set.add(j)
         tag_set.add("")
         ret = list(tag_set)
+        ret.sort()
         
         return ret
     
