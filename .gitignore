@@ -1,5 +1,7 @@
 database.db
+database.db.back
 __pycache__
 try.py
 ui.py
 database_c.py
+setting.conf

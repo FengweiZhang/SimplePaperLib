@@ -2,7 +2,7 @@ import sqlite3, os, copy
 
 from globalvar import *
 
-DB_REL_PATH = "database.db"
+
 
 
 def dict_factory(cursor, row):
@@ -29,6 +29,8 @@ class DataBase:
         "Author",   'PaperName',      "Tags",
         ]
 
+    DB_REL_PATH = "database.db"
+
     def __init__(self):
         # 初始化函数，生成并连接数据库
 
@@ -42,12 +44,12 @@ class DataBase:
         #     pass
 
         # 检查数据库文件是否存在
-        if os.path.isfile(DB_REL_PATH):
-            self.m_con = sqlite3.connect(DB_REL_PATH)
+        if os.path.isfile(DataBase.DB_REL_PATH):
+            self.m_con = sqlite3.connect(DataBase.DB_REL_PATH)
         else:
             # 若文件不存在，则初始化数据库
             # 数据库表名为paperlist
-            self.m_con = sqlite3.connect(DB_REL_PATH)
+            self.m_con = sqlite3.connect(DataBase.DB_REL_PATH)
             self.m_con.execute('''create table paperlist(
                 No INTEGER PRIMARY KEY AUTOINCREMENT,
                 ReadOrNot       INT,

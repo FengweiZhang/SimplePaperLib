@@ -1,6 +1,6 @@
 import tkinter as tk
 from tkinter import DISABLED, HORIZONTAL, VERTICAL, ttk, filedialog
-from tkinter.messagebox import showerror
+from tkinter.messagebox import showerror, showinfo
 from tkinter.scrolledtext import ScrolledText
 import configparser, os, subprocess, copy
 
@@ -9,6 +9,19 @@ from database import DataBase
 from globalvar import *
 
 SETTING_PATH = "setting.conf"
+
+Q_TEXT = [
+    "论文试图解决什么问题？",
+    "这是否是一个新的问题？",
+    "这篇文章要验证一个什么科学假设？",
+    "有哪些相关研究？如何归类？谁是这一课题在领域内值得关注的研究员？",
+    "论文中提到的解决方案之关键是什么？",
+    "论文中的实验是如何设计的？",
+    "用于定量评估的数据集是什么？代码有没有开源？",
+    "论文中的实验及结果有没有很好地支持需要验证的科学假设？",
+    "这篇论文到底有什么贡献？",
+    "下一步呢？有什么工作可以继续深入？"
+]
 
 class TkUI:
 
@@ -410,7 +423,7 @@ def open_add_ui(ui:TkUI):
             title = "选择本地pdf文件",
             initialdir='.',
             filetypes = [('PDF','*.pdf')]
-        )
+        ).replace('/','\\')
         path_text.delete(1.0,tk.END)
         path_text.insert('end', str(path_info))
         add_root.wm_attributes('-topmost',1)
@@ -519,8 +532,11 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             showerror("failed", "目标文件pdf目录错误")
             return
         
-        subprocess.Popen([f"{pdf_reader}",f"\"{file_path}\""], shell=True)
-        print(f"{pdf_reader} \"{file_path}\"")
+        pdf_temp = copy.deepcopy(pdf_reader)
+        pdf_exe = pdf_temp.split('\\')[-1]
+        pdf_path = pdf_reader.rstrip(pdf_exe)
+        print(f"{pdf_reader} \"{file_path}\"\n{pdf_exe} {pdf_path}\n" )
+        subprocess.Popen([f"{pdf_exe}",f"\"{file_path}\""], shell=True, cwd = pdf_path)
         return
         
 
@@ -536,7 +552,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     # 修改窗口主窗口
     edit_root = tk.Toplevel(ui.root)
     edit_root.geometry('770x800')
-    edit_root.resizable(False, True)
+    edit_root.resizable(True, True)
     edit_root.title("Paper: "+str(paper_dict.get("PaperName")))
     edit_root.protocol("WM_DELETE_WINDOW",edit_root.destroy)
     edit_root.grid_rowconfigure(1, weight=1)
@@ -545,7 +561,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     button_frame.grid(row=0, column=0, columnspan=2 ,sticky='new')
 
     # 修改区
-    edit_canvas = tk.Canvas(edit_root,bg='yellow')
+    edit_canvas = tk.Canvas(edit_root)
     edit_canvas.bind('<Configure>', lambda event: edit_canvas.config(scrollregion=edit_canvas.bbox('all')))
     edit_canvas.grid(row=1, column=0, sticky='ewns')
     # 修改区主体
@@ -636,7 +652,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
             title = "选择本地pdf文件",
             initialdir='.',
             filetypes = [('PDF','*.pdf')]
-        )
+        ).replace('/','\\')
         path_text.delete(1.0,tk.END)
         path_text.insert('end', str(path_info))
         edit_root.wm_attributes('-topmost',1)
@@ -663,7 +679,7 @@ def open_edit_ui(event, ui:TkUI, paper_no:str):
     q_label_list = []
     q_text_list = []
     for i in range(10):
-        q_label_list.append(tk.Label(edit_frame, text='Q'+str(i)))
+        q_label_list.append(tk.Label(edit_frame, text='Q'+str(i)+Q_TEXT[i]))
         q_label_list[-1].grid(row=21+2*i, column=0)
         q_text_list.append(ScrolledText(edit_frame, height=10))
         q_text_list[-1].insert('end',str(paper_dict.get("Q"+str(i))))
@@ -719,6 +735,15 @@ def open_setting_ui(ui:TkUI):
         pdf_path_button.configure(state='disable')
         pass
 
+    def backup():
+        # print(["copy", os.path.join(os.getcwd(),DataBase.DB_REL_PATH),os.path.join(os.getcwd(),DataBase.DB_REL_PATH+".backup")])
+        try:
+            subprocess.Popen(["copy", DataBase.DB_REL_PATH, DataBase.DB_REL_PATH+".backup" ], shell=True)
+        except:
+            return
+        showinfo("Succeed","备份成功")
+        return MY_SUCCESS
+
     # 设置窗口主函数
     setting_root = tk.Toplevel(ui.root)
     setting_root.geometry('770x400')
@@ -763,7 +788,7 @@ def open_setting_ui(ui:TkUI):
             title = "选择pdf阅读器",
             initialdir='.',
             filetypes = [('Exe','*.exe')]
-        )
+        ).replace('/','\\')
         if filepath != "":
             pdf_path_entry.delete(0,"end")
             pdf_path_entry.insert('end',filepath)
@@ -777,7 +802,10 @@ def open_setting_ui(ui:TkUI):
     pdf_path_entry.insert('end',ui.m_conf.get("default","pdf_reader"))
     pdf_path_entry.configure(state='disable')
     pdf_path_entry.pack()
-    print(ui.m_conf.get("default","pdf_reader"))
+    # print(ui.m_conf.get("default","pdf_reader"))
+    tk.Label(edit_canvas, text="备份数据库文件").pack()
+    back_button = tk.Button(edit_canvas, text="Backup", command=backup)
+    back_button.pack()
 
     setting_root.mainloop()
 
